@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'home/home_screen.dart';
-import 'search/search_screen.dart';
+import 'map/map_explore_screen.dart';
 import 'booking/bookings_screen.dart';
 import 'listing/my_listings_screen.dart';
 import 'profile/profile_screen.dart';
@@ -18,7 +18,7 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   final _screens = const [
     HomeScreen(),
-    SearchScreen(),
+    MapExploreScreen(),
     BookingsScreen(),
     MessagesScreen(),
     ProfileScreen(),
@@ -52,7 +52,7 @@ class _MovanaBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.search_outlined, activeIcon: Icons.search_rounded, label: 'Search'),
+    _NavItem(icon: Icons.map_outlined, activeIcon: Icons.map_rounded, label: 'Map'),
     _NavItem(icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today_rounded, label: 'Bookings'),
     _NavItem(icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded, label: 'Messages'),
     _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),

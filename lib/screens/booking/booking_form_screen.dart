@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../models/models.dart';
+import 'booking_confirmation_screen.dart';
 
 class BookingFormScreen extends StatefulWidget {
   final VehicleModel vehicle;
@@ -75,6 +76,17 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     }
   }
 
+  /// Generates a short booking reference like "MOV-B3F2A"
+  String _generateRef() {
+    final chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final buf = StringBuffer('MOV-');
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (var i = 0; i < 5; i++) {
+      buf.write(chars[(now >> (i * 4)) % chars.length]);
+    }
+    return buf.toString();
+  }
+
   void _showConfirmationSheet() {
     showModalBottomSheet(
       context: context,
@@ -87,13 +99,18 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         total: _total,
         onConfirm: () {
           Navigator.pop(context); // close sheet
-          Navigator.pop(context); // close booking form
-          Navigator.pop(context); // close detail
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  '🎉 Booking request sent! Owner will confirm shortly.'),
-              backgroundColor: MovanaColors.success,
+          // Navigate to the full confirmation screen, replacing booking form
+          // and detail so the back stack lands on the shell.
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BookingConfirmationScreen(
+                vehicle: v,
+                startDate: _startDate!,
+                endDate: _endDate!,
+                total: _total,
+                bookingRef: _generateRef(),
+              ),
             ),
           );
         },

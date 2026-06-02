@@ -358,16 +358,23 @@ class _VehicleCardState extends State<VehicleCard> {
 // ──────────────────────────────────────────────
 // Vehicle Card (Compact / Horizontal)
 // ──────────────────────────────────────────────
-class VehicleCardCompact extends StatelessWidget {
+class VehicleCardCompact extends StatefulWidget {
   final VehicleModel vehicle;
   final VoidCallback onTap;
 
   const VehicleCardCompact({super.key, required this.vehicle, required this.onTap});
 
   @override
+  State<VehicleCardCompact> createState() => _VehicleCardCompactState();
+}
+
+class _VehicleCardCompactState extends State<VehicleCardCompact> {
+  bool _favorited = false;
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         width: 220,
         decoration: BoxDecoration(
@@ -391,7 +398,7 @@ class VehicleCardCompact extends StatelessWidget {
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(Radii.lg)),
                   child: Image.network(
-                    vehicle.imageUrls.first,
+                    widget.vehicle.imageUrls.first,
                     height: 130,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -404,7 +411,33 @@ class VehicleCardCompact extends StatelessWidget {
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: _CategoryBadge(vehicle.category),
+                  child: _CategoryBadge(widget.vehicle.category),
+                ),
+                // Heart button
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _favorited = !_favorited),
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        shape: BoxShape.circle,
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _favorited
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          key: ValueKey(_favorited),
+                          color: _favorited ? MovanaColors.error : Colors.white,
+                          size: 15,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -414,14 +447,14 @@ class VehicleCardCompact extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    vehicle.name,
+                    widget.vehicle.name,
                     style: MovanaTextStyles.labelMD,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    vehicle.location,
+                    widget.vehicle.location,
                     style: MovanaTextStyles.bodySM,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -430,7 +463,7 @@ class VehicleCardCompact extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '₱${vehicle.pricePerDay.toStringAsFixed(0)}',
+                        '₱${widget.vehicle.pricePerDay.toStringAsFixed(0)}',
                         style: MovanaTextStyles.labelMD.copyWith(
                           color: MovanaColors.primary,
                           fontFamily: 'Syne',
@@ -438,7 +471,7 @@ class VehicleCardCompact extends StatelessWidget {
                       ),
                       Text('/day', style: MovanaTextStyles.bodySM),
                       const Spacer(),
-                      StarRating(rating: vehicle.rating, showCount: false),
+                      StarRating(rating: widget.vehicle.rating, showCount: false),
                     ],
                   ),
                 ],

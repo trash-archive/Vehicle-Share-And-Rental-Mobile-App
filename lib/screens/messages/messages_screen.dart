@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../data/mock_data.dart';
 import '../../models/models.dart';
+import '../listing/vehicle_detail_screen.dart';
 
 // ──────────────────────────────────────────────
 // Messages List Screen
@@ -298,9 +299,24 @@ class _ChatScreenState extends State<ChatScreen> {
                       .copyWith(color: MovanaColors.primary),
                 ),
                 const Spacer(),
-                Text('View listing →',
+                GestureDetector(
+                  onTap: () {
+                    // Find the vehicle by name and navigate to its detail
+                    final vehicle = MockData.vehicles.where(
+                      (v) => v.name == convo.vehicleName,
+                    ).firstOrNull;
+                    if (vehicle != null) {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => VehicleDetailScreen(vehicle: vehicle),
+                      ));
+                    }
+                  },
+                  child: Text(
+                    'View listing →',
                     style: MovanaTextStyles.labelSM
-                        .copyWith(color: MovanaColors.primary)),
+                        .copyWith(color: MovanaColors.primary),
+                  ),
+                ),
               ],
             ),
           ),

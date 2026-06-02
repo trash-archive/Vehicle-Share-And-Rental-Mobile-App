@@ -85,47 +85,64 @@ class _MyListingsScreenState extends State<MyListingsScreen>
 // Listings Tab
 // ──────────────────────────────────────────────
 class _ListingsTab extends StatelessWidget {
-  // Use first 2 vehicles as "owner's listings"
+  // Use first 2 vehicles as "owner's listings" — derived stats
   final _myVehicles = [MockData.vehicles[0], MockData.vehicles[1]];
+
+  // Derived stats from the actual vehicles list
+  int get _activeCount =>
+      _myVehicles.where((v) => v.isAvailable).length;
+  int get _pendingCount => MockData.ownerIncomingRequests
+      .where((r) => r.status == BookingStatus.pending)
+      .length;
+  double get _avgRating =>
+      _myVehicles.isEmpty
+          ? 0
+          : _myVehicles.map((v) => v.rating).reduce((a, b) => a + b) /
+              _myVehicles.length;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(Spacing.page),
-      children: [
-        // Summary cards
-        Row(
-          children: [
-            _SummaryCard(
-              label: 'Active',
-              value: '${MockData.ownerStats['activeListings']}',
-              icon: Icons.check_circle_outline,
-              color: MovanaColors.success,
-            ),
-            const SizedBox(width: Spacing.md),
-            _SummaryCard(
-              label: 'Pending',
-              value: '${MockData.ownerStats['pendingApprovals']}',
-              icon: Icons.pending_outlined,
-              color: MovanaColors.warning,
-            ),
-            const SizedBox(width: Spacing.md),
-            _SummaryCard(
-              label: 'Avg Rating',
-              value: '${MockData.ownerStats['avgRating']}★',
-              icon: Icons.star_outline,
-              color: MovanaColors.accent,
-            ),
-          ],
-        ),
-        const SizedBox(height: Spacing.xxl),
-        const SectionHeader(title: 'Your Vehicles'),
-        const SizedBox(height: Spacing.md),
-        ..._myVehicles.map((v) => Padding(
-          padding: const EdgeInsets.only(bottom: Spacing.lg),
-          child: _OwnerVehicleCard(vehicle: v),
-        )),
-      ],
+    return RefreshIndicator(
+      color: MovanaColors.primary,
+      onRefresh: () async =>
+          await Future.delayed(const Duration(milliseconds: 800)),
+      child: ListView(
+        padding: const EdgeInsets.all(Spacing.page),
+        children: [
+          // Derived summary cards
+          Row(
+            children: [
+              _SummaryCard(
+                label: 'Active',
+                value: '$_activeCount',
+                icon: Icons.check_circle_outline,
+                color: MovanaColors.success,
+              ),
+              const SizedBox(width: Spacing.md),
+              _SummaryCard(
+                label: 'Pending',
+                value: '$_pendingCount',
+                icon: Icons.pending_outlined,
+                color: MovanaColors.warning,
+              ),
+              const SizedBox(width: Spacing.md),
+              _SummaryCard(
+                label: 'Avg Rating',
+                value: '${_avgRating.toStringAsFixed(1)}★',
+                icon: Icons.star_outline,
+                color: MovanaColors.accent,
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xxl),
+          const SectionHeader(title: 'Your Vehicles'),
+          const SizedBox(height: Spacing.md),
+          ..._myVehicles.map((v) => Padding(
+            padding: const EdgeInsets.only(bottom: Spacing.lg),
+            child: _OwnerVehicleCard(vehicle: v),
+          )),
+        ],
+      ),
     );
   }
 }

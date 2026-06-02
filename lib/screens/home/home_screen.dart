@@ -17,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedFilter = 'All';
   final _filters = ['All', 'Motorcycle', 'Car', 'Van', 'E-bike', 'Equipment'];
+  // In-memory recently viewed list
+  final List<VehicleModel> _recentlyViewed = [];
 
   List<VehicleModel> get _filteredVehicles {
     if (_selectedFilter == 'All') return MockData.vehicles;
@@ -41,209 +43,288 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openDetail(VehicleModel v) {
+    // Track recently viewed (max 5, no duplicates)
+    setState(() {
+      _recentlyViewed.removeWhere((r) => r.id == v.id);
+      _recentlyViewed.insert(0, v);
+      if (_recentlyViewed.length > 5) _recentlyViewed.removeLast();
+    });
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => VehicleDetailScreen(vehicle: v)),
     );
   }
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredVehicles;
+    final firstName = MockData.currentUser.name.split(' ').first;
     return Scaffold(
       backgroundColor: MovanaColors.white,
       body: SafeArea(
-        child: ListView(
-          children: [
-            // ── App Bar ──────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.page, vertical: Spacing.md),
-              child: Row(
-                children: [
-                  const MovanaLogo(),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const NotificationsScreen()),
-                    ),
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: MovanaColors.surface,
-                            borderRadius: BorderRadius.circular(Radii.md),
-                            border: Border.all(color: MovanaColors.border),
+        child: RefreshIndicator(
+          color: MovanaColors.primary,
+          onRefresh: () async => await Future.delayed(const Duration(milliseconds: 800)),
+          child: ListView(
+            children: [
+              // ── App Bar ──────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.page, vertical: Spacing.md),
+                child: Row(
+                  children: [
+                    const MovanaLogo(),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen()),
+                      ),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: MovanaColors.surface,
+                              borderRadius: BorderRadius.circular(Radii.md),
+                              border: Border.all(color: MovanaColors.border),
+                            ),
+                            child: const Icon(Icons.notifications_outlined,
+                                size: 20, color: MovanaColors.inkMedium),
                           ),
-                          child: const Icon(Icons.notifications_outlined,
-                              size: 20, color: MovanaColors.inkMedium),
-                        ),
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: MovanaColors.accent,
-                              shape: BoxShape.circle,
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: MovanaColors.accent,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Hero Banner ───────────────────────────────
-            _HeroBanner(),
-            const SizedBox(height: Spacing.xxl),
-
-            // ── Categories ────────────────────────────────
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: Spacing.page),
-              child: const SectionHeader(title: 'Browse by Category'),
-            ),
-            const SizedBox(height: Spacing.md),
-            SizedBox(
-              height: 90,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
-                itemCount: MockData.categories.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(width: Spacing.md),
-                itemBuilder: (_, i) {
-                  final cat = MockData.categories[i];
-                  return _CategoryTile(
-                    label: cat['label'] as String,
-                    emoji: cat['icon'] as String,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SearchScreen(
-                          initialFilter: cat['filter'] as String,
-                        ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: Spacing.xxl),
-
-            // ── Near You ──────────────────────────────────
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: Spacing.page),
-              child: SectionHeader(
-                title: 'Near You',
-                actionLabel: 'See all',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchScreen()),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: Spacing.md),
-            SizedBox(
-              height: 270,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
-                itemCount: MockData.nearbyVehicles.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(width: Spacing.md),
-                itemBuilder: (_, i) {
-                  final v = MockData.nearbyVehicles[i];
-                  return VehicleCardCompact(
-                    vehicle: v,
-                    onTap: () => _openDetail(v),
-                  );
-                },
+
+              // ── Personalised greeting ─────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.page),
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${_greeting()}, ',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: MovanaColors.inkMedium,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '$firstName 👋',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: MovanaColors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: Spacing.xxl),
+              const SizedBox(height: Spacing.sm),
 
-            // ── Stats Banner ──────────────────────────────
-            _StatsBanner(),
-            const SizedBox(height: Spacing.xxl),
+              // ── Hero Banner ───────────────────────────────
+              _HeroBanner(),
+              const SizedBox(height: Spacing.xxl),
 
-            // ── All Listings header + filter chips ────────
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: Spacing.page),
-              child: const SectionHeader(title: 'All Listings'),
-            ),
-            const SizedBox(height: Spacing.md),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
-                itemCount: _filters.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(width: Spacing.sm),
-                itemBuilder: (_, i) {
-                  final f = _filters[i];
-                  final selected = f == _selectedFilter;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = f),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? MovanaColors.primary
-                            : MovanaColors.surface,
-                        borderRadius: BorderRadius.circular(Radii.pill),
-                        border: Border.all(
+              // ── Categories ────────────────────────────────
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: Spacing.page),
+                child: const SectionHeader(title: 'Browse by Category'),
+              ),
+              const SizedBox(height: Spacing.md),
+              SizedBox(
+                height: 90,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
+                  itemCount: MockData.categories.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: Spacing.md),
+                  itemBuilder: (_, i) {
+                    final cat = MockData.categories[i];
+                    return _CategoryTile(
+                      label: cat['label'] as String,
+                      emoji: cat['icon'] as String,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SearchScreen(
+                            initialFilter: cat['filter'] as String,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: Spacing.xxl),
+
+              // ── Near You ──────────────────────────────────
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: Spacing.page),
+                child: SectionHeader(
+                  title: 'Near You',
+                  actionLabel: 'See all',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SearchScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Spacing.md),
+              SizedBox(
+                height: 270,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
+                  itemCount: MockData.nearbyVehicles.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: Spacing.md),
+                  itemBuilder: (_, i) {
+                    final v = MockData.nearbyVehicles[i];
+                    return VehicleCardCompact(
+                      vehicle: v,
+                      onTap: () => _openDetail(v),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: Spacing.xxl),
+
+              // ── Recently Viewed ───────────────────────────
+              if (_recentlyViewed.isNotEmpty) ...[
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: Spacing.page),
+                  child: const SectionHeader(title: 'Recently Viewed'),
+                ),
+                const SizedBox(height: Spacing.md),
+                SizedBox(
+                  height: 270,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: Spacing.page),
+                    itemCount: _recentlyViewed.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(width: Spacing.md),
+                    itemBuilder: (_, i) {
+                      final v = _recentlyViewed[i];
+                      return VehicleCardCompact(
+                        vehicle: v,
+                        onTap: () => _openDetail(v),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: Spacing.xxl),
+              ],
+
+              // ── Stats Banner ──────────────────────────────
+              _StatsBanner(),
+              const SizedBox(height: Spacing.xxl),
+
+              // ── All Listings header + filter chips ────────
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: Spacing.page),
+                child: const SectionHeader(title: 'All Listings'),
+              ),
+              const SizedBox(height: Spacing.md),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
+                  itemCount: _filters.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: Spacing.sm),
+                  itemBuilder: (_, i) {
+                    final f = _filters[i];
+                    final selected = f == _selectedFilter;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedFilter = f),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
                           color: selected
                               ? MovanaColors.primary
-                              : MovanaColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        f,
-                        style: MovanaTextStyles.labelSM.copyWith(
-                          color: selected
-                              ? Colors.white
-                              : MovanaColors.inkMedium,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: Spacing.lg),
-
-            // ── Vehicle List ──────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
-              child: Column(
-                children: filtered
-                    .map((v) => Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: Spacing.lg),
-                          child: VehicleCard(
-                            vehicle: v,
-                            onTap: () => _openDetail(v),
+                              : MovanaColors.surface,
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                          border: Border.all(
+                            color: selected
+                                ? MovanaColors.primary
+                                : MovanaColors.border,
                           ),
-                        ))
-                    .toList(),
+                        ),
+                        child: Text(
+                          f,
+                          style: MovanaTextStyles.labelSM.copyWith(
+                            color: selected
+                                ? Colors.white
+                                : MovanaColors.inkMedium,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
+              const SizedBox(height: Spacing.lg),
 
-            const SizedBox(height: Spacing.xxxl),
-          ],
+              // ── Vehicle List ──────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.page),
+                child: Column(
+                  children: filtered
+                      .map((v) => Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: Spacing.lg),
+                            child: VehicleCard(
+                              vehicle: v,
+                              onTap: () => _openDetail(v),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+
+              const SizedBox(height: Spacing.xxxl),
+            ],
+          ),
         ),
       ),
     );
